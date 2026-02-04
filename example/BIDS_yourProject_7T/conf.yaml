@@ -1,0 +1,50 @@
+Project:
+  Name: "Example fMRI Study"
+  Description: "7T functional MRI preprocessing example"
+MRI:
+  anatomical: "mp2rage-sag"
+  functional: "mbep2d"
+Paths:
+  data_path: "/path/to/dicom/data"
+  programs_path: "/opt"
+  user_folder: "/home/user"
+  project_folder: "/path/to/project"
+Tasks:
+  ML_1: 'ML1'
+  ML_2: 'ML2'
+  ML_3: 'ML3'
+  ML_4: 'ML4'
+  ML_5: 'ML5'
+  LPP: 'LPP'
+  REST: "RS"
+Subjects:
+  sub-01:
+    id: "aa200101-1001_001"
+    date: "20240101"
+    sex: "M"
+    age: "25"
+  sub-02:
+    id: "bb200102-1002_001"
+    date: "20240108"
+    sex: "F"
+    age: "28"
+  sub-03:
+    id: "cc200103-1003_001"
+    date: "20240115"
+    sex: "M"
+    age: "32"
+  sub-04:
+    id: "dd200104-1004_001"
+    date: "20240122"
+    sex: "F"
+    age: "27"
+  sub-05:
+    id: "ee200105-1005_001"
+    date: "20240129"
+    sex: "M"
+    age: "30"
+  sub-06:
+    id: "ff200106-1006_001"
+    date: "20240205"
+    sex: "F"
+    age: "26"

@@ -1,0 +1,52 @@
+base_data_path: "output"
+derivatives_dir: "derivatives/roi-mappings/"
+fs_subjects_dir: "fs_subjects"
+surf_atlas_dir: "surf"
+tasks:
+  - ML-run1
+  - ML-run2
+  - ML-run3
+  - ML-run4
+  - ML-run5
+  - LPP
+  - RS
+roi_mappings:
+  benson:
+    "V1": 1
+    "V2": 2
+    "V3": 3
+    "hV4": 4
+    "VO1": 5
+    "VO2": 6
+    "TO2": 7
+    "LO1": 8
+    "LO2": 9
+    "TO1": 10
+    "V3b": 11
+    "V3a": 12
+  wang:
+    "V1v": 1
+    "V1d": 2
+    "V2v": 3
+    "V2d": 4
+    "V3v": 5
+    "V3d": 6
+    "hV4": 7
+    "VO1": 8
+    "VO2": 9
+    "PHC1": 10
+    "PHC2": 11
+    "TO2": 12
+    "TO1": 13
+    "LO2": 14
+    "LO1": 15
+    "V3B": 16
+    "V3A": 17
+    "IPS0": 18
+    "IPS1": 19
+    "IPS2": 20
+    "IPS3": 21
+    "IPS4": 22
+    "IPS5": 23
+    "SPL1": 24
+    "FEF": 25
