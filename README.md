@@ -13,10 +13,11 @@ This repository contains a BIDS-compliant preprocessing pipeline for fMRI data a
 
 **For questions you can contact**: 
    
-Nicolas Gravel <nicolas.gravel@cea.fr>   
-Julie Bonnaire <julie.bonnaire@cea.fr>   
-Samuel Debray <samuel.debray@ens-paris-saclay.fr>  
-Christophe Pallier <christophe@pallier.org>  
+Nicolas Gravel *nicolas.gravel at cea.fr*  
+Julie Bonnaire  *julie.bonnaire at cea.fr*   
+Samuel Debray *samuel.debray at ens-paris-saclay.fr*    
+Minye Zhan *zhanminye at gmail.com*  
+Christophe Pallier *christophe at pallier.org*    
 
 
 ## Installation
