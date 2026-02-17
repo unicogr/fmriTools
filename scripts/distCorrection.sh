@@ -2,7 +2,12 @@
 # BIDS-compatible distortion correction for 7T data
 # Usage: bash distCorrection.sh sub-01 ses-01
 
-# Set subject and session from arguments
+# Handle optional --dry-run flag and set subject/session
+DRYRUN=0
+if [ "$1" = "--dry-run" ]; then
+    DRYRUN=1
+    shift
+fi
 subj_number=$1
 session=$2
 
@@ -133,13 +138,33 @@ for pattern in "${task_patterns[@]}"; do
             ap_base=$(echo "$ap_base" | sed 's/acq-\([^_]*\)_acq-/acq-\1_dir-/')
         fi
         
-        # Construct PA base by replacing direction and changing suffix dynamically using func_type from conf.yaml
-        pa_base="${ap_base/dir-${moving_direction}/dir-${static_direction}}"
-        ap_suffix="_${func_type}_bold"
-        pa_suffix="_${func_type}"
-        pa_base=$(echo "$pa_base" | sed "s/${ap_suffix}/${pa_suffix}/")
+        # Construct PA filename robustly from the original AP nifti path
+        pa_nifti=""
+        # Try a sequence of likely filename substitutions
+        pa_nifti="${ap_nifti/_dir-${moving_direction}_desc-stc_bold.nii.gz/_dir-${static_direction}_desc-stc_bold.nii.gz}"
+        if [ ! -f "$pa_nifti" ]; then
+            pa_nifti="${ap_nifti/_dir-${moving_direction}_desc-stc_bold.nii.gz/_dir-${static_direction}_bold.nii.gz}"
+        fi
+        if [ ! -f "$pa_nifti" ]; then
+            pa_nifti="${ap_nifti/_dir-${moving_direction}_bold.nii.gz/_dir-${static_direction}_bold.nii.gz}"
+        fi
+        if [ ! -f "$pa_nifti" ]; then
+            # Fallback: search for any matching file in the func folder containing dir-static and base_name
+            pa_nifti=$(find "$func_folder" -type f -name "*dir-${static_direction}*${base_name}*.nii.gz" | head -n 1 || true)
+        fi
 
-        pa_nifti="$func_folder/${pa_base}.nii.gz"
+        if [ -z "$pa_nifti" ] || [ ! -f "$pa_nifti" ]; then
+            echo "ERROR: could not locate PA file for AP: $ap_nifti"
+            echo "Tried candidates for PA:"
+            echo "  ${ap_nifti/_dir-${moving_direction}_desc-stc_bold.nii.gz/_dir-${static_direction}_desc-stc_bold.nii.gz}"
+            echo "  ${ap_nifti/_dir-${moving_direction}_desc-stc_bold.nii.gz/_dir-${static_direction}_bold.nii.gz}"
+            echo "  ${ap_nifti/_dir-${moving_direction}_bold.nii.gz/_dir-${static_direction}_bold.nii.gz}"
+            echo "  find: $(find "$func_folder" -type f -name "*dir-${static_direction}*${base_name}*.nii.gz" -print -quit || true)"
+            continue
+        fi
+
+        echo "Mapping: AP -> PA"
+        echo "  $ap_nifti -> $pa_nifti"
     output_run_dir="$output_dir/$ap_base"
 
     mkdir -p "$output_run_dir"
@@ -250,27 +275,33 @@ EOT
             log_file="$output_run_dir/topup_error.log"
             
             echo "Running topup..."
-            if ! topup --imain=${output_run_dir}/combined_AP_PA.nii.gz \
-                --datain="$acqparams_file" \
-                --config=b02b0.cnf \
-                --out="$topup_out" \
-                --iout="$hifi_b0" \
-                --fout="$fieldmap" 2> >(tee -a "$log_file"); then
-                
-                log_and_return "Topup failed for odd dimensions case: $ap_base" "$log_file" "$output_run_dir"
-                break
+            if [ "$DRYRUN" -eq 1 ]; then
+                echo "DRY RUN: would run topup on ${output_run_dir}/combined_AP_PA.nii.gz"
+            else
+                if ! topup --imain=${output_run_dir}/combined_AP_PA.nii.gz \
+                    --datain="$acqparams_file" \
+                    --config=b02b0.cnf \
+                    --out="$topup_out" \
+                    --iout="$hifi_b0" \
+                    --fout="$fieldmap" 2> >(tee -a "$log_file"); then
+                    log_and_return "Topup failed for odd dimensions case: $ap_base" "$log_file" "$output_run_dir"
+                    break
+                fi
             fi
 
             echo "Applying distortion correction..."
-            if ! applytopup --imain="$padded_nifti" \
-                    --datain="$acqparams_file" \
-                    --inindex=1 \
-                    --topup="$topup_out" \
-                    --out="$corrected_moving_image" \
-                    --method=jac 2>> "$log_file"; then
-                
-                log_and_return "Applytopup failed for odd dimensions case: $ap_base" "$log_file" "$output_run_dir"
-                break
+            if [ "$DRYRUN" -eq 1 ]; then
+                echo "DRY RUN: would run applytopup to produce $corrected_moving_image"
+            else
+                if ! applytopup --imain="$padded_nifti" \
+                        --datain="$acqparams_file" \
+                        --inindex=1 \
+                        --topup="$topup_out" \
+                        --out="$corrected_moving_image" \
+                        --method=jac 2>> "$log_file"; then
+                    log_and_return "Applytopup failed for odd dimensions case: $ap_base" "$log_file" "$output_run_dir"
+                    break
+                fi
             fi
 
         fi
@@ -313,27 +344,33 @@ EOT
             log_file="$output_run_dir/topup_error.log"
                     
             echo "Running topup..."
-            if ! topup --imain="$output_run_dir/combined_AP_PA.nii.gz" \
-                --datain="$acqparams_file" \
-                --config=b02b0.cnf \
-                --out="$topup_out" \
-                --iout="$hifi_b0" \
-                --fout="$fieldmap" 2> >(tee -a "$log_file"); then
-                
-                log_and_return "Topup failed for even dimensions case: $ap_base" "$log_file" "$output_run_dir"
-                break
+            if [ "$DRYRUN" -eq 1 ]; then
+                echo "DRY RUN: would run topup on $output_run_dir/combined_AP_PA.nii.gz"
+            else
+                if ! topup --imain="$output_run_dir/combined_AP_PA.nii.gz" \
+                    --datain="$acqparams_file" \
+                    --config=b02b0.cnf \
+                    --out="$topup_out" \
+                    --iout="$hifi_b0" \
+                    --fout="$fieldmap" 2> >(tee -a "$log_file"); then
+                    log_and_return "Topup failed for even dimensions case: $ap_base" "$log_file" "$output_run_dir"
+                    break
+                fi
             fi
 
             echo "Applying distortion correction..."
-            if ! applytopup --imain="$ap_nifti" \
-                    --datain="$acqparams_file" \
-                    --inindex=1 \
-                    --topup="$topup_out" \
-                    --out="$corrected_moving_image" \
-                    --method=jac 2>> "$log_file"; then
-                
-                log_and_return "Applytopup failed for even dimensions case: $ap_base" "$log_file" "$output_run_dir"
-                break
+            if [ "$DRYRUN" -eq 1 ]; then
+                echo "DRY RUN: would run applytopup to produce $corrected_moving_image"
+            else
+                if ! applytopup --imain="$ap_nifti" \
+                        --datain="$acqparams_file" \
+                        --inindex=1 \
+                        --topup="$topup_out" \
+                        --out="$corrected_moving_image" \
+                        --method=jac 2>> "$log_file"; then
+                    log_and_return "Applytopup failed for even dimensions case: $ap_base" "$log_file" "$output_run_dir"
+                    break
+                fi
             fi
         fi
     fi
